@@ -335,3 +335,32 @@ def test_aliases_for_flags(runner):
     assert result.output == 'False\n'
     result = runner.invoke(cli_alt, ['-w'])
     assert result.output == 'True\n'
+
+
+@pytest.mark.parametrize('option_args,expected', [
+    (['--aggressive', '--all', '-a'], 'all'),
+    (['--first', '--second', '--third', '-a', '-b', '-c'], 'third'),
+    (['--apple', '--banana', '--cantaloupe', '-a', '-b', '-c'], 'cantaloupe'),
+    (['--cantaloupe', '--banana', '--apple', '-c', '-b', '-a'], 'apple'),
+    (['-a', '-b', '-c'], 'c'),
+    (['-c', '-b', '-a'], 'a'),
+    (['-a', '--apple', '-b', '--banana', '-c', '--cantaloupe'], 'cantaloupe'),
+    (['-c', '-a', '--cantaloupe', '-b', '--banana', '--apple'], 'apple'),
+    (['--from', '-f', '_from'], '_from'),
+    (['--return', '-r', '_ret'], '_ret'),
+    (['-f', '-r', '--from', '--read'], 'read'),
+    (['-w', '-t', '--write', '--to'], 'to'),
+])
+def test_option_names(runner, option_args, expected):
+
+    @click.command()
+    @click.option(*option_args, is_flag=True)
+    def cmd(**kwargs):
+        click.echo(str(kwargs[expected]))
+
+    assert cmd.params[0].name == expected
+
+    for form in option_args:
+        if form.startswith('-'):
+            result = runner.invoke(cmd, [form])
+            assert result.output == 'True\n'
